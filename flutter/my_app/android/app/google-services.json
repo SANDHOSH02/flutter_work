@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "563428619583",
+    "project_id": "nscet-dfca7",
+    "storage_bucket": "nscet-dfca7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:563428619583:android:0fa5933ab031a20441cf8a",
+        "android_client_info": {
+          "package_name": "com.example.my_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArxabd50d0i14eMD9PfDTUyR5xGSn4XFw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
