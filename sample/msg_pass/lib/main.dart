@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'student.dart'; // Import the student profile page.
+import 'package:http/http.dart' as http;
+import 'view_messages.dart'; // Import the new page
 
 void main() {
   runApp(const MyApp());
@@ -11,28 +12,27 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Dashboard App',
+      title: 'Message Saver',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
       ),
-      home: const DashboardPage(),
+      home: const MessageSaverPage(),
     );
   }
 }
 
-class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+class MessageSaverPage extends StatefulWidget {
+  const MessageSaverPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  State<MessageSaverPage> createState() => _MessageSaverPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _MessageSaverPageState extends State<MessageSaverPage> {
   final TextEditingController _msgController = TextEditingController();
 
-  // Function to handle message submission
-  Future<void> _submitMessage() async {
+  // Function to save message to the database
+  Future<void> _saveMessage() async {
     final message = _msgController.text;
 
     if (message.isEmpty) {
@@ -42,18 +42,22 @@ class _DashboardPageState extends State<DashboardPage> {
       return;
     }
 
-    // Call backend service to save the message in MySQL
-    try {
-      final response = await saveMessageToDatabase(message);
+    final url = Uri.parse('http://localhost/sample_flutter/save_message.php'); // Replace with your backend API URL
 
-      if (response) {
+    try {
+      final response = await http.post(
+        url,
+        body: {'message': message},
+      );
+
+      if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Message uploaded successfully!')),
+          const SnackBar(content: Text('Message saved successfully!')),
         );
-        _msgController.clear(); // Clear the text field
+        _msgController.clear();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to upload message!')),
+          const SnackBar(content: Text('Failed to save message!')),
         );
       }
     } catch (e) {
@@ -63,53 +67,47 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  // Simulated function to save data to the database (replace with actual backend logic)
-  Future<bool> saveMessageToDatabase(String message) async {
-    // Replace this with your HTTP request logic to save the message in MySQL
-    await Future.delayed(const Duration(seconds: 1)); // Simulate delay
-    return true; // Return success
+  // Navigate to ViewMessagesPage
+  void _goToMessagesPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ViewMessagesPage()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Details'),
+        title: const Text('Message Saver'),
         centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              'Upload Your Message:',
+              'Enter a message to save:',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _msgController,
               decoration: const InputDecoration(
-                labelText: 'Enter your message',
+                labelText: 'Message',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _submitMessage,
-              child: const Text('Submit'),
+              onPressed: _saveMessage,
+              child: const Text('Save Message'),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () {
-                // Navigate to student profile page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const StudentProfile()),
-                );
-              },
-              child: const Text('Go to Student Profile'),
+              onPressed: _goToMessagesPage,
+              child: const Text('View Saved Messages'),
             ),
           ],
         ),
