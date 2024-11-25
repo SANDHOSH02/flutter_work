@@ -1,113 +1,91 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'view_messages.dart'; // Import the new page
+import 'package:path/path.dart';
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Message Saver',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MessageSaverPage(),
+      debugShowCheckedModeBanner: false,
+      home: UploadImageScreen(),
     );
   }
 }
 
-class MessageSaverPage extends StatefulWidget {
-  const MessageSaverPage({super.key});
-
+class UploadImageScreen extends StatefulWidget {
   @override
-  State<MessageSaverPage> createState() => _MessageSaverPageState();
+  _UploadImageScreenState createState() => _UploadImageScreenState();
 }
 
-class _MessageSaverPageState extends State<MessageSaverPage> {
-  final TextEditingController _msgController = TextEditingController();
+class _UploadImageScreenState extends State<UploadImageScreen> {
+  Uint8List? _imageBytes; // To store the image in a web-compatible format
+  XFile? _pickedFile;
 
-  // Function to save message to the database
-  Future<void> _saveMessage() async {
-    final message = _msgController.text;
+  Future<void> pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
-    if (message.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Message cannot be empty!')),
-      );
-      return;
-    }
-
-    final url = Uri.parse('http://localhost/sample_flutter/save_message.php'); // Replace with your backend API URL
-
-    try {
-      final response = await http.post(
-        url,
-        body: {'message': message},
-      );
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Message saved successfully!')),
-        );
-        _msgController.clear();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save message!')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes(); // Convert image to bytes for Flutter Web
+      setState(() {
+        _imageBytes = bytes;
+        _pickedFile = pickedFile;
+      });
     }
   }
 
-  // Navigate to ViewMessagesPage
-  void _goToMessagesPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ViewMessagesPage()),
+  Future<void> uploadImage() async {
+    if (_pickedFile == null) return;
+
+    final uri = Uri.parse("http://localhost/sample_flutter/upload.php"); // Replace with your server URL
+    final request = http.MultipartRequest('POST', uri);
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'image',
+        _imageBytes!,
+        filename: basename(_pickedFile!.path),
+        contentType: MediaType('image', 'png'), // Adjust content type as needed
+      ),
     );
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      print("Image uploaded successfully!");
+    } else {
+      print("Image upload failed with status: ${response.statusCode}");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Message Saver'),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(title: const Text('Upload Image')),
+      body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Enter a message to save:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _msgController,
-              decoration: const InputDecoration(
-                labelText: 'Message',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
+            _imageBytes != null
+                ? Image.memory(_imageBytes!, height: 200, width: 200, fit: BoxFit.cover)
+                : const Text('No Image Selected'),
             ElevatedButton(
-              onPressed: _saveMessage,
-              child: const Text('Save Message'),
+              onPressed: pickImage,
+              child: const Text('Select Image'),
             ),
-            const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _goToMessagesPage,
-              child: const Text('View Saved Messages'),
+              onPressed: uploadImage,
+              child: const Text('Upload Image'),
             ),
           ],
         ),
