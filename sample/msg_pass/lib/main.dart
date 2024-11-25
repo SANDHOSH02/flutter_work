@@ -17,17 +17,23 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: UploadImageScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const StaffDashboard(),
+        '/student': (context) => const StudentDashboard(),
+      },
     );
   }
 }
 
-class UploadImageScreen extends StatefulWidget {
+class StaffDashboard extends StatefulWidget {
+  const StaffDashboard({Key? key}) : super(key: key);
+
   @override
-  _UploadImageScreenState createState() => _UploadImageScreenState();
+  _StaffDashboardState createState() => _StaffDashboardState();
 }
 
-class _UploadImageScreenState extends State<UploadImageScreen> {
+class _StaffDashboardState extends State<StaffDashboard> {
   Uint8List? _imageBytes; // To store the image in a web-compatible format
   XFile? _pickedFile;
 
@@ -36,7 +42,7 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
-      final bytes = await pickedFile.readAsBytes(); // Convert image to bytes for Flutter Web
+      final bytes = await pickedFile.readAsBytes(); // Convert image to bytes
       setState(() {
         _imageBytes = bytes;
         _pickedFile = pickedFile;
@@ -71,22 +77,97 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload Image')),
+      appBar: AppBar(
+        title: const Text('Staff Dashboard'),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 20),
+              const Text(
+                'Welcome to Staff Dashboard',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              _imageBytes != null
+                  ? Image.memory(
+                      _imageBytes!,
+                      height: 200,
+                      width: 200,
+                      fit: BoxFit.cover,
+                    )
+                  : const Text('No Image Selected'),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: pickImage,
+                child: const Text('Select Image'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: uploadImage,
+                child: const Text('Upload Image'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  if (_imageBytes != null) {
+                    Navigator.pushNamed(
+                      context,
+                      '/student',
+                      arguments: _imageBytes, // Pass the image to the Student page
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please upload an image first!'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Go to Student Page'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class StudentDashboard extends StatelessWidget {
+  const StudentDashboard({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final Uint8List? imageBytes = ModalRoute.of(context)!.settings.arguments as Uint8List?;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Student Dashboard'),
+        centerTitle: true,
+        backgroundColor: Colors.green,
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _imageBytes != null
-                ? Image.memory(_imageBytes!, height: 200, width: 200, fit: BoxFit.cover)
-                : const Text('No Image Selected'),
-            ElevatedButton(
-              onPressed: pickImage,
-              child: const Text('Select Image'),
+            const Text(
+              'Uploaded Image',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            ElevatedButton(
-              onPressed: uploadImage,
-              child: const Text('Upload Image'),
-            ),
+            const SizedBox(height: 20),
+            imageBytes != null
+                ? Image.memory(
+                    imageBytes,
+                    height: 200,
+                    width: 200,
+                    fit: BoxFit.cover,
+                  )
+                : const Text('No Image Available'),
           ],
         ),
       ),
