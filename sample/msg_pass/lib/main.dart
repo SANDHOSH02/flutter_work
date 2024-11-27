@@ -2,9 +2,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart';
+import 'package:path/path.dart' as p; // Use alias here
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -60,7 +61,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
       http.MultipartFile.fromBytes(
         'image',
         _imageBytes!,
-        filename: basename(_pickedFile!.path),
+        filename: p.basename(_pickedFile!.path),
         contentType: MediaType('image', 'png'), // Adjust content type as needed
       ),
     );
@@ -68,9 +69,13 @@ class _StaffDashboardState extends State<StaffDashboard> {
     final response = await request.send();
 
     if (response.statusCode == 200) {
-      print("Image uploaded successfully!");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Image uploaded successfully!')),
+      );
     } else {
-      print("Image upload failed with status: ${response.statusCode}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed with status: ${response.statusCode}')),
+      );
     }
   }
 
@@ -83,57 +88,108 @@ class _StaffDashboardState extends State<StaffDashboard> {
         backgroundColor: Colors.blueAccent,
       ),
       body: SingleChildScrollView(
-        child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
               const Text(
-                'Welcome to Staff Dashboard',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                'Welcome to the Staff Dashboard',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-              _imageBytes != null
-                  ? Image.memory(
-                      _imageBytes!,
-                      height: 200,
-                      width: 200,
-                      fit: BoxFit.cover,
-                    )
-                  : const Text('No Image Selected'),
+              // Dashboard cards
+              Row(
+                children: [
+                  _buildDashboardCard(
+                    title: 'Select Image',
+                    icon: Icons.image_outlined,
+                    onTap: pickImage,
+                  ),
+                  const SizedBox(width: 20),
+                  _buildDashboardCard(
+                    title: 'Upload Image',
+                    icon: Icons.cloud_upload_outlined,
+                    onTap: uploadImage,
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: pickImage,
-                child: const Text('Select Image'),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: uploadImage,
-                child: const Text('Upload Image'),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () {
-                  if (_imageBytes != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/student',
-                      arguments: _imageBytes, // Pass the image to the Student page
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please upload an image first!'),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Go to Student Page'),
+              _buildCircularImagePreview(),
+              const SizedBox(height: 30),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_imageBytes != null) {
+                      Navigator.pushNamed(
+                        context,
+                        '/student',
+                        arguments: _imageBytes,
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please upload an image first!')),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text('Go to Student Page'),
+                ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDashboardCard({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 40, color: Colors.blueAccent),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircularImagePreview() {
+    return Center(
+      child: _imageBytes != null
+          ? CircleAvatar(
+              radius: 80,
+              backgroundImage: MemoryImage(_imageBytes!),
+            )
+          : CircleAvatar(
+              radius: 80,
+              backgroundColor: Colors.grey.shade300,
+              child: const Icon(Icons.image, size: 40, color: Colors.grey),
+            ),
     );
   }
 }
@@ -156,18 +212,19 @@ class StudentDashboard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              'Uploaded Image',
+              'Uploaded Image Preview',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             imageBytes != null
-                ? Image.memory(
-                    imageBytes,
-                    height: 200,
-                    width: 200,
-                    fit: BoxFit.cover,
+                ? CircleAvatar(
+                    radius: 100,
+                    backgroundImage: MemoryImage(imageBytes),
                   )
-                : const Text('No Image Available'),
+                : const Text(
+                    'No Image Available',
+                    style: TextStyle(color: Colors.red),
+                  ),
           ],
         ),
       ),
