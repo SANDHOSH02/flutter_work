@@ -223,7 +223,7 @@ class StudentDashboard extends StatelessWidget {
                   )
                 : const Text(
                     'No Image Available',
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: Color.fromARGB(255, 163, 66, 60)),
                   ),
           ],
         ),
